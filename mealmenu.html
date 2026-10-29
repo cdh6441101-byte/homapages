@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>구미캠퍼스 식단정보</title>
+<style>
+:root{
+  --bg:#f6f7f9;--card:#ffffff;--text:#1c2430;--muted:#6b7686;--line:#e3e7ee;
+  --accent:#1f6feb;--accent-soft:#e6f0ff;--chip:#eef1f6;--badge:#ff6b35;
+  box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#10141a;--card:#1a2029;--text:#e8ecf2;--muted:#93a0b2;--line:#2a323e;
+    --accent:#6aa5ff;--accent-soft:#1d2a40;--chip:#242c38;--badge:#ff8a5c;color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#10141a;--card:#1a2029;--text:#e8ecf2;--muted:#93a0b2;--line:#2a323e;
+  --accent:#6aa5ff;--accent-soft:#1d2a40;--chip:#242c38;--badge:#ff8a5c;color-scheme:dark;
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",system-ui,sans-serif;
+  line-height:1.5}
+.wrap{max-width:720px;margin:0 auto;padding:20px 16px 40px}
+h1{font-size:22px;margin:0 0 2px}
+.sub{color:var(--muted);font-size:13px;margin:0 0 16px}
+.notice{background:var(--accent-soft);color:var(--text);border-radius:10px;padding:10px 12px;font-size:13px;margin-bottom:16px}
+.tabs{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin-bottom:14px}
+.tab{flex:1 0 auto;min-width:56px;border:1px solid var(--line);background:var(--card);color:var(--text);
+  border-radius:12px;padding:8px 10px;font-size:15px;font-weight:600;cursor:pointer;position:relative}
+.tab.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.tab .today{display:block;font-size:10px;font-weight:600;color:var(--accent);margin-top:-1px}
+.tab.on .today{color:#fff}
+.mode{display:flex;justify-content:flex-end;margin-bottom:10px}
+.mode button{border:1px solid var(--line);background:var(--card);color:var(--muted);font-size:12px;
+  padding:5px 10px;cursor:pointer}
+.mode button:first-child{border-radius:8px 0 0 8px}
+.mode button:last-child{border-radius:0 8px 8px 0;border-left:0}
+.mode button.on{color:var(--accent);border-color:var(--accent);font-weight:700}
+.meal{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-bottom:12px}
+.meal-h{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:8px}
+.meal-h b{font-size:16px}
+.meal-h span{font-size:12px;color:var(--muted)}
+.items{display:flex;flex-wrap:wrap;gap:6px}
+.chip{background:var(--chip);border-radius:999px;padding:4px 11px;font-size:14px}
+.chip.special{background:var(--badge);color:#fff;font-weight:700;font-size:12px}
+.empty{color:var(--muted);font-size:14px}
+.note{font-size:12px;color:var(--muted);margin-top:8px}
+.week{display:none}
+.wday{margin-bottom:14px}
+.wday h2{font-size:15px;margin:0 0 6px}
+.wday h2.today{color:var(--accent)}
+.foot{color:var(--muted);font-size:12px;margin-top:18px}
+.foot a{color:var(--accent)}
+body.weekmode .daymode{display:none}
+body.weekmode .week{display:block}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🍚 구미캠퍼스 식단정보</h1>
+  <p class="sub">한국폴리텍대학 구미캠퍼스 · 주간 식단</p>
+  <div class="notice">안내된 메뉴는 식당 운영 및 식자재 수급 상황에 따라 변경될 수 있어요.</div>
+
+  <div class="mode">
+    <button id="bDay" class="on">하루씩</button>
+    <button id="bWeek">주간 전체</button>
+  </div>
+
+  <div class="daymode">
+    <div class="tabs" id="tabs"></div>
+    <div id="day"></div>
+  </div>
+  <div class="week" id="week"></div>
+
+  <p class="foot">출처: <a href="https://www.kopo.ac.kr/gumi/content.do?menu=4941" target="_blank" rel="noopener">구미캠퍼스 식단정보 페이지</a> (2026년 10월 22일 기준 게시 내용). 최신 식단은 학교 홈페이지에서 확인해 주세요.</p>
+</div>
+
+<script>
+var TIMES={b:"07:50 ~ 08:40",l:"11:50 ~ 13:10",d:"16:50 ~ 17:40"};
+var DAYS=["월","화","수","목","금"];
+var MENU=[
+ {b:"컵밥 , 음료",
+  l:"잡곡밥 , 콩나물국 , 치즈닭갈비 , 맛감자/케찹 , 쌈무 , 포기김치",
+  d:"*일품요리* , 스팸계란볶음밥 , 유부장국 , 소세지핫바/머스타드 , 포기김치/요구르트 , 츄로스"},
+ {b:"소보로빵 , 초코우유",
+  l:"잡곡밥 , 짬뽕순두부찌개 , 간장불고기 , 감자전/초간장 , 표고버섯볶음 , 포기김치",
+  d:"쌀밥 , 알탕 , 모듬조림 , 호박볶음 , 볼아묵조림 , 포기김치"},
+ {b:"컵밥 , 음료",
+  l:"잡곡밥 , 청국장찌개 , 고등어구이/와사비장 , 매콤어묵볶음 , 시금치무침 , 포기김치",
+  d:"흰밥 , 어묵국 , 떡볶이 , 모듬야채튀김/초간장 , 순대/소금 , 포기김치/쿨피스"},
+ {b:"소보로빵 , 초코우유",
+  l:"*일품요리* , 흰밥 , 뼈해장국 , 풋고추/쌈장 , 양파무절임 , 깍두기 , 매실주스",
+  d:"쌀밥 , 육개장 , 치킨너겟/머스타드 , 명엽채조림 , 오이양파무침 , 포기김치"},
+ {b:"컵밥 , 음료",
+  l:"잡곡밥 , 돈김치찌개 , 딥치즈계란찜 , 청포묵김가루무침 , 명태피무침 , 포기김치",
+  d:"흰밥 , 옹심이들깨배추국 , 후랑크소세지볶음 , 돌자반 , 고구마순볶음 , 포기김치"}
+];
+var g=new Date().getDay(); // 0=일
+var todayIdx=(g>=1&&g<=5)?g-1:-1;
+var sel=todayIdx>=0?todayIdx:0;
+
+function chips(str){
+  return str.split(" , ").map(function(t){
+    t=t.trim();
+    if(/^\*.+\*$/.test(t)) return '<span class="chip special">'+t.replace(/\*/g,"")+'</span>';
+    return '<span class="chip">'+t+'</span>';
+  }).join("");
+}
+function mealCard(name,time,str,extra){
+  return '<div class="meal"><div class="meal-h"><b>'+name+'</b><span>'+time+'</span></div>'+
+    '<div class="items">'+chips(str)+'</div>'+(extra?'<div class="note">'+extra+'</div>':'')+'</div>';
+}
+function renderDay(){
+  var m=MENU[sel];
+  document.getElementById("day").innerHTML=
+    mealCard("🌅 조식",TIMES.b,m.b)+
+    mealCard("☀️ 중식",TIMES.l,m.l)+
+    mealCard("🌙 석식",TIMES.d,m.d,"수업이 있는 학생 대상 월~목 18시까지 운영");
+}
+function renderTabs(){
+  var h="";
+  DAYS.forEach(function(d,i){
+    h+='<button class="tab'+(i===sel?' on':'')+'" data-i="'+i+'">'+d+
+       (i===todayIdx?'<span class="today">오늘</span>':'')+'</button>';
+  });
+  var el=document.getElementById("tabs");
+  el.innerHTML=h;
+  Array.prototype.forEach.call(el.querySelectorAll(".tab"),function(b){
+    b.addEventListener("click",function(){sel=+b.getAttribute("data-i");renderTabs();renderDay();});
+  });
+}
+function renderWeek(){
+  var h="";
+  DAYS.forEach(function(d,i){
+    var m=MENU[i];
+    h+='<div class="wday"><h2'+(i===todayIdx?' class="today"':'')+'>'+d+'요일'+(i===todayIdx?' · 오늘':'')+'</h2>'+
+      mealCard("조식",TIMES.b,m.b)+mealCard("중식",TIMES.l,m.l)+mealCard("석식",TIMES.d,m.d)+'</div>';
+  });
+  document.getElementById("week").innerHTML=h;
+}
+function setMode(w){
+  document.body.classList.toggle("weekmode",w);
+  document.getElementById("bDay").classList.toggle("on",!w);
+  document.getElementById("bWeek").classList.toggle("on",w);
+}
+document.getElementById("bDay").addEventListener("click",function(){setMode(false)});
+document.getElementById("bWeek").addEventListener("click",function(){setMode(true)});
+if(todayIdx<0){
+  var n=document.createElement("div");n.className="notice";
+  n.textContent="주말에는 식단이 제공되지 않아 월요일 식단을 보여드려요.";
+  document.querySelector(".daymode").insertBefore(n,document.getElementById("tabs"));
+}
+renderTabs();renderDay();renderWeek();
+</script>
+</body>
+</html>
